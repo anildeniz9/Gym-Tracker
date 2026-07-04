@@ -1,13 +1,11 @@
-const CACHE_NAME = 'gym-tracker-v1';
+const CACHE_NAME = 'gym-tracker-v3';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './apple-touch-icon.png',
   './icon-192.png',
-  './icon-512.png',
-  'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js',
-  'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap'
+  './icon-512.png'
 ];
 
 self.addEventListener('install', event => {
@@ -26,17 +24,18 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
+// NETWORK FIRST: always try to load fresh version, fall back to cache when offline
 self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      const fetchPromise = fetch(event.request).then(response => {
-        if (response && response.status === 200 && event.request.method === 'GET') {
+    fetch(event.request)
+      .then(response => {
+        if (response && response.status === 200) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         }
         return response;
-      }).catch(() => cached);
-      return cached || fetchPromise;
-    })
+      })
+      .catch(() => caches.match(event.request))
   );
 });
